@@ -1,0 +1,35 @@
+# Uncover App Content Structure
+
+## Database Schema
+Table: content
+Columns: content (TEXT), type (TEXT), category (TEXT)
+
+## Available Categories
+family-friends
+dating-relationship
+fiction
+only-wrong-answers
+travel
+money
+18+
+randomized
+
+## Available Types
+questions
+situations
+dilemmas
+
+## Content Type Definitions
+questions: Personal discovery questions for self-reflection
+situations: "What would you do" scenarios requiring decision-making
+dilemmas: Either/or moral choices with no clear right answer
+
+## Category Themes
+family-friends: Relationships and social connections
+dating-relationship: Romance and partnerships
+fiction: Fantasy and imaginative scenarios
+only-wrong-answers: Humorous content with absurd responses
+travel: Exploration and adventure
+money: Financial decisions and wealth
+18+: Adult-oriented intimate content
+randomized: Mixed themes from various categories
