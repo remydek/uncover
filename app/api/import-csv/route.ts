@@ -23,7 +23,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   }
 });
 
-// Helper function to parse CSV text with category validation
+// Helper function to parse CSV text with category validation and debugging
 async function parseCSV(text: string): Promise<CSVRecord[]> {
   return new Promise((resolve, reject) => {
     const records: CSVRecord[] = [];
@@ -38,19 +38,37 @@ async function parseCSV(text: string): Promise<CSVRecord[]> {
       'general'
     ];
     
+    console.log('Starting CSV parsing...');
+    console.log('Raw CSV text:', text.substring(0, 200) + '...');
+    
     // Create a simple CSV parser
     const lines = text.split('\n').filter(line => line.trim() !== '');
+    console.log('Found', lines.length, 'lines');
     
     // Skip header if it exists
     const startIndex = lines[0].toLowerCase().includes('content,type,category') ? 1 : 0;
+    console.log('Starting from line', startIndex);
     
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
+      console.log('Processing line', i, ':', line);
+      
       try {
         // Simple CSV parsing - split by comma, handle quoted values
-        const [content = '', type = '', category = ''] = line
-          .split(',')
-          .map(field => field.trim().replace(/^"|"$/g, ''));
+        const parts = line.split(',').map(field => field.trim().replace(/^"|"$/g, ''));
+        console.log('Parsed parts:', parts);
+        
+        const [content = '', type = '', category = ''] = parts;
+        
+        if (!content.trim()) {
+          console.warn('Skipping empty content on line', i);
+          continue;
+        }
+        
+        if (!type.trim()) {
+          console.warn('Skipping empty type on line', i);
+          continue;
+        }
         
         // Validate category
         let validCategory = category.trim().toLowerCase();
@@ -59,17 +77,22 @@ async function parseCSV(text: string): Promise<CSVRecord[]> {
           validCategory = 'general';
         }
         
-        if (content && type) {
-          records.push({
-            content: content.trim(),
-            type: type.trim().toLowerCase(),
-            category: validCategory,
-          });
-        }
+        const record = {
+          content: content.trim(),
+          type: type.trim().toLowerCase(),
+          category: validCategory,
+        };
+        
+        console.log('Valid record:', record);
+        records.push(record);
+        
       } catch (error) {
+        console.error('Error processing line', i, ':', error);
         console.warn(`Skipping malformed line: ${line}`);
       }
     }
+    
+    console.log('Final parsed records:', records.length, records);
     
     if (records.length === 0) {
       reject(new Error('No valid records found in CSV'));
@@ -190,59 +213,6 @@ export async function POST(request: Request) {
       
       if (procError) {
         console.error('Stored procedure test failed:', procError);
-        throw new Error(`Stored procedure error: ${procError.message}`);
-      }
-      
-      console.log('Stored procedure test successful:', procTest);
-      
-      // Use direct insertion with service role key (bypasses RLS)
-      let insertedCount = 0;
-      const errors: string[] = [];
-      
-      console.log('Attempting direct insertion with service role key...');
-      
-      for (const record of records) {
-        try {
-          console.log('Inserting record:', record);
-          
-          const { data, error } = await supabase
-            .from('content')
-            .insert({
-              content: record.content,
-              type: record.type,
-              category: record.category
-            })
-            .select();
-          
-          console.log('Insert result:', { data, error });
-          
-          if (error) {
-            console.error('Insert error details:', {
-              message: error.message,
-              code: error.code,
-              details: error.details,
-              hint: error.hint
-            });
-            throw new Error(`Insert failed: ${error.message} (${error.code || 'no code'})`);
-          }
-          
-          insertedCount++;
-          console.log(`Successfully inserted: ${record.content.substring(0, 50)}...`);
-          
-        } catch (error) {
-          console.error('Detailed insert error:', {
-            record: record,
-            error: error instanceof Error ? error.message : error
-          });
-          errors.push(`Failed: ${record.content.substring(0, 50)}... - ${error instanceof Error ? error.message : 'Unknown error'}`);
-        }
-      }
-      
-      if (errors.length > 0) {
-        console.error('Some records failed to import:', errors);
-        if (insertedCount === 0) {
-          throw new Error(`Failed to import any records. Errors: ${errors.join('; ')}`);
-        } else {
           // Some records were imported, but not all
           console.warn(`Imported ${insertedCount} records with ${errors.length} errors`);
         }
