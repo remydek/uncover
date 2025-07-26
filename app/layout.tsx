@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
-import { Inter, Amiri } from 'next/font/google'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import BottomNavigation from '@/components/BottomNavigation'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const amiri = Amiri({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-amiri' })
 
 export const metadata: Metadata = {
   title: 'Uncover - Deep Conversations',
@@ -21,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${amiri.variable} font-sans bg-dark-bg text-text-primary`}>
+      <body className={`${inter.variable} font-sans bg-dark-bg text-text-primary`}>
         <div className="min-h-screen bg-gradient-dark">
           {children}
           <BottomNavigation />
