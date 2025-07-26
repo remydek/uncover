@@ -1,10 +1,21 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { createClient, PostgrestError } from '@supabase/supabase-js';
 
-type CSVRecord = {
+interface CSVRecord {
   content: string;
   type: string;
   category: string;
+}
+
+// Simple logger for API route
+const log = (message: string, data?: any) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] CSV Import: ${message}`, data || '');
+};
+
+const error = (message: string, error?: any) => {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] CSV Import ERROR: ${message}`, error || '');
 };
 
 // Initialize Supabase client with service role key to bypass RLS
@@ -103,8 +114,11 @@ async function parseCSV(text: string): Promise<CSVRecord[]> {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] CSV Import: Starting API request`);
+
     // Check for API key in the environment
     if (!supabaseServiceKey) {
       return NextResponse.json(

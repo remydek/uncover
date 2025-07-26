@@ -2,6 +2,7 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { supabase } from '@/lib/supabase';
+import { CSVImportLogger } from '@/lib/logger';
 
 interface Message {
   text: string;
@@ -13,63 +14,102 @@ export default function AdminPage() {
   const [csvText, setCsvText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<Message>({ text: '', type: '' });
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
+      setCsvText(''); // Clear text when file is selected
+      CSVImportLogger.log('File selected', { fileName: e.target.files[0].name, fileSize: e.target.files[0].size });
     }
   };
 
   const handleTextareaChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
     setCsvText(e.target.value);
+    if (e.target.value) setFile(null); // Clear file when text is entered
+    CSVImportLogger.log('Text input changed', { textLength: e.target.value.length });
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
+    CSVImportLogger.log('CSV import initiated');
+    
     if ((!file && !csvText.trim()) || (file && csvText.trim())) {
-      setMessage({ text: 'Please provide either a file or paste CSV text, not both.', type: 'error' });
+      const error = 'Please provide either a file or paste CSV text, not both.';
+      CSVImportLogger.error(error);
+      setMessage({ text: error, type: 'error' });
       return;
     }
 
     setIsLoading(true);
     setMessage({ text: 'Importing data...', type: 'info' });
+    CSVImportLogger.log('Starting CSV import process');
 
     try {
       const formData = new FormData();
       
       if (file) {
         formData.append('file', file);
+        CSVImportLogger.log('Processing file upload', { fileName: file.name, fileSize: file.size });
       } else {
         formData.append('csvText', csvText);
+        CSVImportLogger.log('Processing CSV text', { textLength: csvText.length });
       }
 
+      CSVImportLogger.log('Sending request to /api/import-csv');
       const response = await fetch('/api/import-csv', {
         method: 'POST',
         body: formData,
       });
 
+      CSVImportLogger.log('Response received', { status: response.status, statusText: response.statusText });
+      
       const result = await response.json();
+      CSVImportLogger.log('Response parsed', result);
       
       if (response.ok) {
-        setMessage({ text: `Successfully imported ${result.count} items!`, type: 'success' });
+        const successMsg = `Successfully imported ${result.count} items!`;
+        CSVImportLogger.log(successMsg, { count: result.count, errors: result.errors });
+        setMessage({ text: successMsg, type: 'success' });
         setCsvText('');
         setFile(null);
         // Reset file input
         const fileInput = document.getElementById('file-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+        
+        // Show detailed logs
+        if (result.errors && result.errors.length > 0) {
+          CSVImportLogger.warn('Some records had errors', result.errors);
+        }
       } else {
-        throw new Error(result.error || 'Failed to import data');
+        const error = result.error || 'Failed to import data';
+        CSVImportLogger.error('Import failed', { error, details: result.details });
+        throw new Error(error);
       }
     } catch (error) {
-      console.error('Error importing data:', error);
+      CSVImportLogger.error('Error during CSV import', error);
       setMessage({ 
         text: error instanceof Error ? error.message : 'An unknown error occurred', 
         type: 'error' 
       });
     } finally {
       setIsLoading(false);
+      CSVImportLogger.log('CSV import process completed');
     }
+  };
+
+  const showDebugLogs = () => {
+    const logs = CSVImportLogger.getLogs();
+    setDebugLogs(logs);
+    setShowDebug(true);
+  };
+
+  const clearDebugLogs = () => {
+    CSVImportLogger.clearLogs();
+    setDebugLogs([]);
+    setShowDebug(false);
   };
 
   return (
