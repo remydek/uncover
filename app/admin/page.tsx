@@ -190,6 +190,50 @@ export default function AdminPage() {
             </button>
           </div>
         </form>
+
+        {/* Debug Section */}
+        <div className="mt-8 border-t pt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Debug Logs</h2>
+            <div className="space-x-2">
+              <button
+                onClick={showDebugLogs}
+                className="px-3 py-1 text-sm bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Show Logs
+              </button>
+              <button
+                onClick={clearDebugLogs}
+                className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700"
+              >
+                Clear Logs
+              </button>
+            </div>
+          </div>
+          
+          {showDebug && (
+            <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg max-h-96 overflow-y-auto">
+              <h3 className="font-semibold mb-2 text-gray-900">Recent Logs:</h3>
+              {debugLogs.length > 0 ? (
+                <pre className="text-xs font-mono whitespace-pre-wrap text-gray-700">
+                  {debugLogs.join('\n')}
+                </pre>
+              ) : (
+                <p className="text-sm text-gray-500">No logs available</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-blue-900 mb-2">CSV Format Guide:</h3>
+          <div className="text-sm text-blue-700 space-y-1">
+            <p><strong>Required columns:</strong> content, type, category</p>
+            <p><strong>Types:</strong> questions, dilemmas, situations</p>
+            <p><strong>Categories:</strong> family-friends, dating-relationship, work-career, personal-growth, fun-social, general</p>
+            <p><strong>Example:</strong> "What's your favorite memory?","questions","family-friends"</p>
+          </div>
+        </div>
       </div>
     </div>
   );
